@@ -1,1 +1,48 @@
-test
+name: Build and Package .NET Application
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build application
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Publish application
+        run: |
+          dotnet publish \
+            --configuration Release \
+            --output ./publish \
+            --no-restore
+
+      - name: Create package
+        run: |
+          mkdir -p artifacts
+          tar -czf artifacts/dotnet-app-${{ github.run_number }}.tar.gz -C publish .
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-app-${{ github.run_number }}
+          path: artifacts/dotnet-app-${{ github.run_number }}.tar.gz
+          retention-days: 7
